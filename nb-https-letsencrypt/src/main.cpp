@@ -135,7 +135,7 @@ int downloadSsl(const char *host, const char *path) {
 }
 
 /**
- * Sends a GET request for path the the specified host. The Connection header is set to close.
+ * Sends a GET request for the path of the specified host. The Connection header is set to close.
  *
  * @param client
  * @param host
