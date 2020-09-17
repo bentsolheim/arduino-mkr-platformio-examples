@@ -18,4 +18,4 @@ your Arduino MKR NB 1500 and run
 
     pio run -t upload
     
-The example will wait for you to connect to serial to observe the output.
+The example will wait for you to connect to Serial, then connect to https://letsencrypt.org and print the response.
