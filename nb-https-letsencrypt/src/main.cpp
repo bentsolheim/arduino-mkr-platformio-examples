@@ -2,6 +2,8 @@
 #include <MKRNB.h>
 #include <ArduinoBearSSL.h>
 
+// Create the arduino_secrets.h file with the specifics for connecting to the network for
+// your provider.
 #if __has_include("arduino_secrets.h")
 
 #include "arduino_secrets.h"
@@ -46,7 +48,7 @@ void setup() {
     digitalWrite(LED_BUILTIN, LOW);
 
     Serial.begin(9600);
-    while (!Serial) {}
+    while (!Serial) { delay(100); }
 
     Serial.println("Connecting to network...");
 
@@ -73,6 +75,7 @@ void setup() {
 }
 
 void loop() {
+    // We are not doing anything besides what is done in setup().
     yield();
 }
 
