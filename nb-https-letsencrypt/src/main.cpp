@@ -1,6 +1,7 @@
 #include <Arduino.h>
 #include <MKRNB.h>
 #include <ArduinoBearSSL.h>
+#include "http_ssl.h"
 
 // Create the arduino_secrets.h file with the specifics for connecting to the network for
 // your provider.
@@ -24,18 +25,7 @@ NBClient nbClient;
 // https connections without relying on the NBSSLClient in the MKRNB library.
 BearSSLClient sslClient(nbClient);
 
-static const int ERROR_SSL_CONNECT = 1;
-static const int ERROR_REQUEST_FAILED = 2;
-static const int ERROR_RESPONSE_DOWNLOAD = 3;
-
-int downloadSsl(const char *host, const char *path = "/");
-
-bool gprsConnect(int attempts = 3, int delayMillis = 1000);
-
-int copyStream(Stream *source, Stream *target, int waitForBytesAttempts = 10, int waitForBytesDelayMillis = 10);
-
-bool performGet(Client *client, const char *host, const char *path);
-
+bool gprsConnect(int attempts=3, int delayMillis=1000);
 void printModemVersion();
 
 unsigned long getTime() {
@@ -67,7 +57,7 @@ void setup() {
     // Download https://letsencrypt.org . This will not work using NBSSLClient on the
     // u-blox SARA-R410M-02B modem with firmware/app version L0.0.00.00.05.06,A.02.00
     // from Feb 03 2018. BearSSL to the rescue.
-    int status = downloadSsl("letsencrypt.org", "/");
+    int status = downloadSsl(&sslClient, "letsencrypt.org", "/");
     if (status != 0) {
         Serial.print("Unable to connect to host. Error: ");
         Serial.println(status);
@@ -77,23 +67,6 @@ void setup() {
 void loop() {
     // We are not doing anything besides what is done in setup().
     yield();
-}
-
-/**
- * Prints the modem name and version. Do not call this method before MODEM.begin() has been
- * called, or the first send call with hang forever.
- */
-void printModemVersion() {
-    String response;
-
-    MODEM.send("AT+GMM");
-    MODEM.waitForResponse(100, &response);
-    Serial.print(response);
-    Serial.print(" version ");
-
-    MODEM.send("ATI9");
-    MODEM.waitForResponse(100, &response);
-    Serial.println(response);
 }
 
 /**
@@ -115,76 +88,18 @@ bool gprsConnect(int attempts, int delayMillis) {
 }
 
 /**
- * Downloads https://${host}/${path} and prints it to Serial
- *
- * @param host
- * @param path
- * @return 0 on success, otherwise error code > 0
+ * Prints the modem name and version. Do not call this method before MODEM.begin() has been
+ * called, or the first send call with hang forever.
  */
-int downloadSsl(const char *host, const char *path) {
-    if (!sslClient.connect(host, 443)) {
-        return ERROR_SSL_CONNECT;
-    }
-    if (!performGet(&sslClient, host, path)) {
-        return ERROR_REQUEST_FAILED;
-    }
-    if (copyStream(&sslClient, &Serial) == -1) {
-        return ERROR_RESPONSE_DOWNLOAD;
-    }
-    return 0;
-}
+void printModemVersion() {
+    String response;
 
-/**
- * Sends a GET request for the path of the specified host. The Connection header is set to close.
- *
- * @param client
- * @param host
- * @param path
- * @return true on success, false in case of error sending request
- */
-bool performGet(Client *client, const char *host, const char *path) {
+    MODEM.send("AT+GMM");
+    MODEM.waitForResponse(100, &response);
+    Serial.print(response);
+    Serial.print(" version ");
 
-    char requestLine[300];
-    snprintf(requestLine, sizeof(requestLine), "GET %s HTTP/1.1", path);
-    if (client->println(requestLine) == 0) {
-        return false;
-    }
-    snprintf(requestLine, sizeof(requestLine), "Host: %s", host);
-    if (client->println(requestLine) == 0) {
-        return false;
-    }
-    snprintf(requestLine, sizeof(requestLine), "Connection: close");
-    if (client->println(requestLine) == 0) {
-        return false;
-    }
-    client->println();
-    return true;
-}
-
-/**
- * Copies bytes from source and prints them into target until there are no more bytes
- * available in source. When source runs out of bytes you can optionally wait a bit for more
- * data using waitForBytesAttempts and waitForBytesDelayMillis.
- *
- * @param source the Stream to read data from
- * @param target the Stream to print data to
- * @param waitForBytesAttempts the number of times to retry checking source for more data
- * @param waitForBytesDelayMillis the number of millis to wait before each retry attempt
- * @return the number of bytes copied, or -1 if any error during printing to target
- */
-int copyStream(Stream *source, Stream *target, int waitForBytesAttempts, int waitForBytesDelayMillis) {
-    char c;
-    int bytesCopied = 0;
-    for (int i = 0; i < waitForBytesAttempts; i++) {
-        while (source->available()) {
-            c = source->read();
-            if (target->print(c) == 0) {
-                return -1;
-            }
-            bytesCopied++;
-            i = 0;
-        }
-        delay(waitForBytesDelayMillis);
-    }
-    return bytesCopied;
+    MODEM.send("ATI9");
+    MODEM.waitForResponse(100, &response);
+    Serial.println(response);
 }
