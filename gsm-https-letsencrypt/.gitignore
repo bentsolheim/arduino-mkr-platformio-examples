@@ -1,0 +1,5 @@
+.pio
+CMakeListsPrivate.txt
+CMakeLists.txt
+cmake-build-*/
+src/arduino_secrets.h
